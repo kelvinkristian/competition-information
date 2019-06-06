@@ -1,20 +1,96 @@
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 )
+
+const (
+	port = 8080
+)
+
+// NullInt64 is an alias for sql.NullInt64 data type
+type NullInt64 struct {
+	sql.NullInt64
+}
+
+// MarshalJSON for NullInt64
+func (ni *NullInt64) MarshalJSON() ([]byte, error) {
+	if !ni.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ni.Int64)
+}
+
+// NullBool is an alias for sql.NullBool data type
+type NullBool struct {
+	sql.NullBool
+}
+
+// MarshalJSON for NullBool
+func (nb *NullBool) MarshalJSON() ([]byte, error) {
+	if !nb.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(nb.Bool)
+}
+
+// NullFloat64 is an alias for sql.NullFloat64 data type
+type NullFloat64 struct {
+	sql.NullFloat64
+}
+
+// MarshalJSON for NullFloat64
+func (nf *NullFloat64) MarshalJSON() ([]byte, error) {
+	if !nf.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(nf.Float64)
+}
+
+// NullString is an alias for sql.NullString data type
+type NullString struct {
+	sql.NullString
+}
+
+// MarshalJSON for NullString
+func (ns *NullString) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ns.String)
+}
+
+// NullTime is an alias for mysql.NullTime data type
+type NullTime struct {
+	mysql.NullTime
+}
+
+// MarshalJSON for NullTime
+func (nt *NullTime) MarshalJSON() ([]byte, error) {
+	if !nt.Valid {
+		return []byte("null"), nil
+	}
+	val := fmt.Sprintf("\"%s\"", nt.Time.Format(time.RFC3339))
+	return []byte(val), nil
+}
 
 // Competition is and struct contains competition description
 type Competition struct {
-	Name      string `json:"Name"`
-	Date      string `json:"Date"`
-	PrizePool int    `json:"PrizePool"`
-	Desc      string `json:"Desc"`
+	cmpName                 string     `json:"Name"`
+	cmpLastRegistrationDate NullTime   `json:"LastRegistrationDate"`
+	cmpStartDate            NullTime   `json:"StartDate"`
+	cmpPrizePool            NullInt64  `json:"PrizePool"`
+	cmpDesc                 NullString `json:"Desc"`
+	cmpImageSrc             NullString `json:"ImageSrc"`
 }
 
 // Middleware is use for chaining handler function
@@ -75,11 +151,17 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	mw := Chain(Logging(), Method("GET"), Tracing())
 	http.Handle("/", mw(Index))
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
-	port := 8080
+
 	fmt.Println("Connected to port " + strconv.Itoa(port) + ", Have a nice day!")
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), nil))
 }
