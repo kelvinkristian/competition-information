@@ -72,33 +72,13 @@ func Chain(middlewares ...Middleware) Middleware {
 // Index is a HandlerFunction for root url about all competition
 func Index(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("index.html"))
-	// fmt.Fprintln(w, "Hello, World!")
-
-	// data := Competition{
-	// 	Name:      "Hackathon Binus",
-	// 	Date:      "18-05-2018",
-	// 	PrizePool: 20000000,
-	// 	Desc:      "Hackathon held by Binus at Tokopedia tower",
-	// }
 	tmpl.Execute(w, nil)
 }
-
-// // VideoEvent is a HandlerFunction to show all video on /video
-// func VideoEvent(w http.ResponseWriter, r *http.Request) {
-// 	video := Video{
-// 		Name: "Angga Wedding",
-// 		Date: "25-04-2019",
-// 		Size: 2000,
-// 	}
-
-// 	json.NewEncoder(w).Encode(video)
-// }
 
 func main() {
 	mw := Chain(Logging(), Method("GET"), Tracing())
 	http.Handle("/", mw(Index))
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
-	// http.Handle("/video", mw(VideoEvent))
 	port := 8080
 	fmt.Println("Connected to port " + strconv.Itoa(port) + ", Have a nice day!")
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), nil))
